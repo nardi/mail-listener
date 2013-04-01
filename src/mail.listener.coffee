@@ -15,7 +15,32 @@ class MailListener extends EventEmitter
       port: options.port
       secure: options.secure
     @mailbox = options.mailbox || "INBOX"
-
+  
+  getmail: =>
+    @imap.search ["UNSEEN"], (err, searchResults) =>
+      if err
+        util.log "error searching unseen emails #{err}"
+        @emit "error", err
+      else              
+        util.log "found #{searchResults.length} emails"
+        # 5. fetch emails
+        if searchResults.length > 0
+          @imap.fetch searchResults, { markSeen: true },
+            headers:
+              parse: false
+            body: true
+            cb: (fetch) =>
+              # 6. email was fetched. Parse it!   
+              fetch.on "message", (msg) =>
+                parser = new MailParser
+                parser.on "end", (mail) =>
+                  #util.log "parsed mail" + util.inspect mail, false, 5
+                  @emit "mail:parsed", mail
+                msg.on "data", (data) -> parser.write data.toString()
+                msg.on "end", ->
+                  #util.log "fetched message: " + util.inspect(msg, false, 5)
+                  parser.end()
+  
   # start listener
   start: => 
     # 1. connect to imap server  
@@ -24,7 +49,7 @@ class MailListener extends EventEmitter
         util.log "error connecting to mail server #{err}"
         @emit "error", err
       else
-        util.log "successfully connected to mail server"
+        #util.log "successfully connected to mail server"
         @emit "server:connected"
         # 2. open mailbox
         @imap.openBox @mailbox, false, (err) =>
@@ -32,34 +57,14 @@ class MailListener extends EventEmitter
             util.log "error opening mail box '#{@mailbox}'  #{err}"
             @emit "error", err
           else
-            util.log "successfully opened mail box '#{@mailbox}'"            
+            #util.log "successfully opened mail box '#{@mailbox}'"  
+            do @getmail
             # 3. listen for new emails in the inbox
             @imap.on "mail", (id) =>
               util.log "new mail arrived with id #{id}"
               @emit "mail:arrived", id
-              # 4. find all unseen emails 
-              @imap.search ["UNSEEN"], (err, searchResults) =>
-                if err
-                  util.log "error searching unseen emails #{err}"
-                  @emit "error", err
-                else              
-                  util.log "found #{searchResults.length} emails"
-                  # 5. fetch emails
-                  @imap.fetch searchResults, 
-                    headers:
-                      parse: false
-                    body: true  
-                    cb: (fetch) =>
-                      # 6. email was fetched. Parse it!   
-                      fetch.on "message", (msg) =>
-                        parser = new MailParser
-                        parser.on "end", (mail) =>
-                          util.log "parsed mail" + util.inspect mail, false, 5
-                          @emit "mail:parsed", mail
-                        msg.on "data", (data) -> parser.write data.toString()
-                        msg.on "end", ->
-                          util.log "fetched message: " + util.inspect(msg, false, 5)
-                          parser.end()
+              do @getmail
+              
   # stop listener
   stop: =>
     @imap.logout =>

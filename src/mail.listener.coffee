@@ -19,10 +19,10 @@ class MailListener extends EventEmitter
   getmail: =>
     @imap.search ["UNSEEN"], (err, searchResults) =>
       if err
-        util.log "error searching unseen emails #{err}"
+        console.log "error searching unseen emails #{err}"
         @emit "error", err
       else              
-        util.log "found #{searchResults.length} emails"
+        console.log "found #{searchResults.length} emails"
         # 5. fetch emails
         if searchResults.length > 0
           @imap.fetch searchResults, { markSeen: true },
@@ -34,11 +34,11 @@ class MailListener extends EventEmitter
               fetch.on "message", (msg) =>
                 parser = new MailParser
                 parser.on "end", (mail) =>
-                  #util.log "parsed mail" + util.inspect mail, false, 5
+                  #console.log "parsed mail" + util.inspect mail, false, 5
                   @emit "mail:parsed", mail
                 msg.on "data", (data) -> parser.write data.toString()
                 msg.on "end", ->
-                  #util.log "fetched message: " + util.inspect(msg, false, 5)
+                  #console.log "fetched message: " + util.inspect(msg, false, 5)
                   parser.end()
   
   # start listener
@@ -46,22 +46,22 @@ class MailListener extends EventEmitter
     # 1. connect to imap server  
     @imap.connect (err) =>
       if err
-        util.log "error connecting to mail server #{err}"
+        console.log "error connecting to mail server #{err}"
         @emit "error", err
       else
-        #util.log "successfully connected to mail server"
+        #console.log "successfully connected to mail server"
         @emit "server:connected"
         # 2. open mailbox
         @imap.openBox @mailbox, false, (err) =>
           if err
-            util.log "error opening mail box '#{@mailbox}'  #{err}"
+            console.log "error opening mail box '#{@mailbox}'  #{err}"
             @emit "error", err
           else
-            #util.log "successfully opened mail box '#{@mailbox}'"  
+            #console.log "successfully opened mail box '#{@mailbox}'"  
             do @getmail
             # 3. listen for new emails in the inbox
             @imap.on "mail", (id) =>
-              util.log "new mail arrived with id #{id}"
+              console.log "new mail arrived with id #{id}"
               @emit "mail:arrived", id
               do @getmail
               

@@ -34,10 +34,10 @@
 
       return this.imap.search(["UNSEEN"], function(err, searchResults) {
         if (err) {
-          util.log("error searching unseen emails " + err);
+          console.log("error searching unseen emails " + err);
           return _this.emit("error", err);
         } else {
-          util.log("found " + searchResults.length + " emails");
+          console.log("found " + searchResults.length + " emails");
           if (searchResults.length > 0) {
             return _this.imap.fetch(searchResults, {
               markSeen: true
@@ -73,18 +73,18 @@
 
       return this.imap.connect(function(err) {
         if (err) {
-          util.log("error connecting to mail server " + err);
+          console.log("error connecting to mail server " + err);
           return _this.emit("error", err);
         } else {
           _this.emit("server:connected");
           return _this.imap.openBox(_this.mailbox, false, function(err) {
             if (err) {
-              util.log("error opening mail box '" + _this.mailbox + "'  " + err);
+              console.log("error opening mail box '" + _this.mailbox + "'  " + err);
               return _this.emit("error", err);
             } else {
               _this.getmail();
               return _this.imap.on("mail", function(id) {
-                util.log("new mail arrived with id " + id);
+                console.log("new mail arrived with id " + id);
                 _this.emit("mail:arrived", id);
                 return _this.getmail();
               });
